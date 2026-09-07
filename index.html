@@ -23,14 +23,28 @@
   body{
     background:var(--paper);
     color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif; 
+    font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif;
     line-height:1.55;
     -webkit-font-smoothing:antialiased;
+    position:relative;
+  }
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    opacity:0.16;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><g fill='none' stroke='%233E6B45' stroke-width='2.5' stroke-linecap='round'><line x1='30' y1='0' x2='30' y2='220'/><line x1='20' y1='36' x2='40' y2='36'/><line x1='20' y1='92' x2='40' y2='92'/><line x1='20' y1='148' x2='40' y2='148'/><line x1='20' y1='204' x2='40' y2='204'/><line x1='150' y1='0' x2='150' y2='220'/><line x1='140' y1='60' x2='160' y2='60'/><line x1='140' y1='116' x2='160' y2='116'/><line x1='140' y1='172' x2='160' y2='172'/></g><g fill='%233E6B45'><path d='M30 36 C 50 20, 70 24, 78 40 C 60 42, 42 42, 30 36 Z'/><path d='M30 92 C 10 78, -8 82, -14 98 C 4 100, 22 98, 30 92 Z'/><path d='M150 60 C 170 46, 188 50, 194 64 C 176 68, 158 66, 150 60 Z'/></g></svg>");
+    background-repeat:repeat;
+    background-size:220px 220px;
   }
   .sheet{
     max-width:1180px;
     margin:0 auto;
     padding:40px 28px 80px;
+    position:relative;
+    z-index:1;
   }
   header.title-block{
     border-bottom:2px solid var(--ink);
@@ -82,7 +96,7 @@
     align-items:baseline;
   }
   .panel-head h2{
-    font-family:'Noto Serif SC', serif;
+    font-family:'PingFang SC','Microsoft YaHei',serif;
     font-size:16px;
     font-weight:700;
     margin:0;
@@ -272,6 +286,33 @@
     margin-top:6px;
     font-weight:500;
   }
+  .verdict-list{
+    list-style:none;
+    margin:8px 0 0;
+    padding:0;
+  }
+  .verdict-list li{
+    font-size:13.5px;
+    padding:5px 0 5px 20px;
+    position:relative;
+    line-height:1.5;
+  }
+  .verdict-list li::before{
+    content:'✓';
+    position:absolute;
+    left:0;
+    color:var(--bamboo-pale);
+    font-weight:700;
+  }
+  .verdict-list.caution li::before{
+    content:'△';
+    color:#E0B463;
+  }
+  .verdict-list .empty{
+    color:var(--bamboo-pale);
+    opacity:0.7;
+  }
+  .verdict-list .empty::before{ content:''; }
 
   .footnote{
     margin-top:34px;
@@ -415,8 +456,10 @@
         </div>
 
         <div class="verdict">
-          <div class="tag">场景建议</div>
-          <div class="text" id="verdict-text">—</div>
+          <div class="tag">推荐场景</div>
+          <ul class="verdict-list" id="verdict-fit"></ul>
+          <div class="tag" style="margin-top:14px;">谨慎 / 不建议</div>
+          <ul class="verdict-list caution" id="verdict-caution"></ul>
         </div>
 
       </div>
@@ -545,11 +588,41 @@
     setBar(document.getElementById('b-degrade'), document.getElementById('n-degrade'), r.degrade, '', '');
     setBar(document.getElementById('b-water'), document.getElementById('n-water'), r.water, '', levelFor(r.water));
 
-    document.getElementById('note-tensile').textContent = r.tensile < 35 ? '偏软，承重能力不足' : (r.tensile > 80 ? '偏刚，注意搭配韧性指标' : '常规商超袋区间');
-    document.getElementById('note-tough').textContent = r.tough < 35 ? '偏脆，低温或折叠处易开裂' : '柔韧性尚可';
-    document.getElementById('note-punc').textContent = r.sizePenalty > 5 ? `竹粉粒径 ${r.particleUm.toFixed(0)}μm 相对膜厚偏大，已扣减${r.sizePenalty.toFixed(0)}分` : '粒径与膜厚匹配良好';
-    document.getElementById('note-degrade').textContent = r.degrade > 70 ? '堆肥条件下降解较快' : (r.degrade > 45 ? '中等降解速度，需工业堆肥条件' : '降解偏慢，接近传统树脂表现');
-    document.getElementById('note-water').textContent = r.water < 40 ? '遇水易发粘变形，不建议装汤汁类' : '耐潮表现正常';
+    let tensileNote;
+    if(r.tensile < 30) tensileNote = '明显低于普通PE马甲袋，日常提重物有断裂风险';
+    else if(r.tensile < 50) tensileNote = '接近可用下限，建议单次载重控制在3kg以内';
+    else if(r.tensile < 75) tensileNote = '达到常规商超马甲袋标准，日常购物、打包足够';
+    else tensileNote = '强度接近或超过PE基准，注意同步看韧性避免过刚发脆';
+    document.getElementById('note-tensile').textContent = tensileNote;
+
+    let toughNote;
+    if(r.tough < 30) toughNote = '极易在折叠、低温或反复拉伸处开裂，不建议直接量产';
+    else if(r.tough < 50) toughNote = '柔韧性偏弱，装尖锐或不规则物品时要小心';
+    else if(r.tough < 75) toughNote = '柔韧性正常，日常提拉、打包不易撕裂';
+    else toughNote = '柔韧性优秀，手感接近传统PE薄膜';
+    document.getElementById('note-tough').textContent = toughNote;
+
+    let puncNote;
+    if(r.sizePenalty > 5) puncNote = `竹粉粒径约${r.particleUm.toFixed(0)}μm，相对${r.thickness}μm膜厚偏粗，已扣减${r.sizePenalty.toFixed(0)}分，是穿刺失效主因`;
+    else if(r.punc < 35) puncNote = '刺穿失效风险高，装带骨头、瓶罐等尖锐物品需谨慎';
+    else if(r.punc < 55) puncNote = '轻负载可用，避免尖锐物品直接顶住袋壁';
+    else if(r.punc < 75) puncNote = '满足常规超市购物袋使用场景';
+    else puncNote = '抗刺穿表现优秀，可承载较重、带尖角的商品';
+    document.getElementById('note-punc').textContent = puncNote;
+
+    let degradeNote;
+    if(r.degrade < 35) degradeNote = '接近传统树脂降解速度，宣传"可降解"需谨慎，建议提高淀粉或竹粉占比';
+    else if(r.degrade < 55) degradeNote = '需要工业堆肥（约58℃）条件才能在合理周期内降解，自然环境降解慢';
+    else if(r.degrade < 75) degradeNote = '堆肥条件下数月内可基本降解，达到主流认证门槛区间';
+    else degradeNote = '降解速度较快，但通常伴随强度/耐水下降，注意整体平衡';
+    document.getElementById('note-degrade').textContent = degradeNote;
+
+    let waterNote;
+    if(r.water < 30) waterNote = '遇水极易发粘变形，仅适合短时干货场景';
+    else if(r.water < 55) waterNote = '耐潮一般，避免长时间接触汤汁或潮湿环境';
+    else if(r.water < 80) waterNote = '耐潮表现正常，可应对短时潮湿环境';
+    else waterNote = '耐水性接近PBAT基准水平，适合湿货、冷链等场景';
+    document.getElementById('note-water').textContent = waterNote;
 
     document.getElementById('n-bio').textContent = r.bioPct.toFixed(0) + '%';
     document.getElementById('n-cost').textContent = '≈ ' + Math.round(r.cost).toLocaleString('zh-CN');
@@ -591,20 +664,52 @@
       });
     }
 
-    // Verdict
-    let verdict = '';
-    if(r.punc < 35){
-      verdict = '当前配方抗刺穿可靠性不足，不建议直接用于承重马甲袋，建议先解决竹粉粒径或相容剂问题。';
-    } else if(r.tensile > 65 && r.tough < 35){
-      verdict = '偏刚性配方，更适合硬质结构件或托盘类制品，若坚持做薄膜袋需大幅提高PBAT占比改善韧性。';
-    } else if(r.bioPct > 55 && r.punc > 55){
-      verdict = '生物基占比高且力学表现均衡，适合主打"高竹基含量"卖点的中高端定制马甲袋。';
-    } else if(r.cost < 13000 && r.punc > 45){
-      verdict = '成本可控、性能达标，适合走量的商超日用马甲袋路线。';
-    } else {
-      verdict = '各项指标处于中间水平，可作为起始配方，建议结合具体承重需求微调竹粉与相容剂比例。';
+    // Scenario recommendations — computed as two independent lists
+    const fit = [];
+    const caution = [];
+
+    if(r.punc >= 55 && r.cost <= 14000){
+      fit.push('商超 / 商场日用马甲袋 —— 性能达标、成本可控，适合走量铺货');
     }
-    document.getElementById('verdict-text').textContent = verdict;
+    if(r.punc >= 45 && r.bioPct >= 55){
+      fit.push('主打"高竹基含量"的中高端定制袋 —— 生物基占比高，环保卖点站得住');
+    }
+    if(r.water >= 55 && r.punc >= 45){
+      fit.push('生鲜 / 果蔬打包袋 —— 耐潮表现足够应对短时接触水汽');
+    }
+    if(r.tensile >= 70 && r.tough < 45){
+      fit.push('转做托盘、周转箱等硬质结构件 —— 当前偏刚性，比做薄膜袋更合适');
+    }
+    if(r.degrade >= 65 && r.punc >= 40){
+      fit.push('政府采购 / 环保招标类项目 —— 降解速度指标突出，便于宣传送检');
+    }
+    if(fit.length === 0){
+      fit.push('暂无明确适配场景，建议先按下方风险提示调整配方后再定位');
+    }
+
+    if(r.punc < 35){
+      caution.push('不建议做承重马甲袋，刺穿失效风险高');
+    }
+    if(r.water < 30){
+      caution.push('避免用于湿货、汤汁类包装，容易发粘变形');
+    }
+    if(r.tough < 30){
+      caution.push('低温环境（冷链、冬季）下折叠处容易开裂');
+    }
+    if(r.cost > 18000){
+      caution.push('原料成本偏高，走量场景经济性较差，更适合品牌溢价产品');
+    }
+    if(r.f.bamboo > 0.20 && r.f.compat < 0.03){
+      caution.push('竹粉占比高但相容剂不足，实际表现可能明显低于当前模拟值');
+    }
+    if(caution.length === 0){
+      caution.push('当前配方未触发明显场景禁区');
+    }
+
+    const fitList = document.getElementById('verdict-fit');
+    fitList.innerHTML = fit.map(t => `<li>${t}</li>`).join('');
+    const cautionList = document.getElementById('verdict-caution');
+    cautionList.innerHTML = caution.map(t => `<li>${t}</li>`).join('');
   }
 
   ids.forEach(id => {
