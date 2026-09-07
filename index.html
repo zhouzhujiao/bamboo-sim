@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>竹基可降解马甲袋 · 配方模拟台</title>
+<style>
+  :root{
+    --paper:#E9E3CF;
+    --panel:#F3EEDD;
+    --ink:#26291F;
+    --ink-soft:#5B5A4C;
+    --bamboo:#3E6B45;
+    --bamboo-deep:#254A31;
+    --bamboo-pale:#B9CDAE;
+    --brick:#9C3B2E;
+    --brick-pale:#EBD4CC;
+    --line: rgba(38,41,31,0.22);
+    --line-soft: rgba(38,41,31,0.11);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif; 
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sheet{
+    max-width:1180px;
+    margin:0 auto;
+    padding:40px 28px 80px;
+  }
+  header.title-block{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:20px;
+    margin-bottom:28px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  h1{
+    font-family:'PingFang SC','Microsoft YaHei',serif;
+    font-weight:700;
+    font-size:clamp(26px,3.4vw,38px);
+    margin:0;
+    letter-spacing:0.5px;
+  }
+  .subtitle{
+    color:var(--ink-soft);
+    font-size:14px;
+    margin-top:6px;
+    max-width:560px;
+  }
+  .doc-meta{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:right;
+    line-height:1.7;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    gap:32px;
+  }
+  @media (max-width: 880px){
+    .layout{ grid-template-columns: 1fr; }
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+  }
+  .panel-head{
+    padding:14px 20px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+  }
+  .panel-head h2{
+    font-family:'Noto Serif SC', serif;
+    font-size:16px;
+    font-weight:700;
+    margin:0;
+  }
+  .panel-head .hint{
+    font-size:11px;
+    color:var(--ink-soft);
+    font-family:'JetBrains Mono', monospace;
+  }
+  .panel-body{ padding:18px 20px 22px; }
+
+  /* ---- sliders ---- */
+  .field{
+    margin-bottom:20px;
+  }
+  .field:last-child{ margin-bottom:0; }
+  .field-label{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:6px;
+    font-size:13.5px;
+  }
+  .field-label .name{ font-weight:500; }
+  .field-label .val{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    color:var(--bamboo-deep);
+    font-size:13px;
+  }
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:4px;
+    background:var(--line);
+    border-radius:2px;
+    outline:none;
+    margin:0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:16px;height:16px;
+    border-radius:50%;
+    background:var(--bamboo);
+    border:2px solid var(--panel);
+    box-shadow:0 0 0 1px var(--bamboo-deep);
+    cursor:pointer;
+    margin-top:-6px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px;height:14px;border-radius:50%;
+    background:var(--bamboo);
+    border:2px solid var(--panel);
+    box-shadow:0 0 0 1px var(--bamboo-deep);
+    cursor:pointer;
+  }
+  input[type=range]:focus-visible::-webkit-slider-thumb{
+    box-shadow:0 0 0 3px var(--bamboo-pale);
+  }
+  .field .desc{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-top:4px;
+  }
+
+  .divider{
+    border:none;
+    border-top:1px solid var(--line);
+    margin:22px 0;
+  }
+
+  .total-row{
+    display:flex;
+    justify-content:space-between;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    padding-top:14px;
+    border-top:1px dashed var(--line);
+    color:var(--ink-soft);
+  }
+  .total-row b{ color:var(--ink); }
+
+  /* ---- output bars ---- */
+  .metric{
+    margin-bottom:18px;
+  }
+  .metric:last-child{ margin-bottom:0; }
+  .metric-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:5px;
+  }
+  .metric-name{ font-size:13.5px; font-weight:500; }
+  .metric-num{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    font-size:13px;
+  }
+  .bar-track{
+    height:9px;
+    background:var(--line-soft);
+    border:1px solid var(--line);
+    position:relative;
+  }
+  .bar-fill{
+    height:100%;
+    background:var(--bamboo);
+    transition:width .25s ease;
+  }
+  .bar-fill.warn{ background:#B08A2E; }
+  .bar-fill.danger{ background:var(--brick); }
+  .metric-note{
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:4px;
+  }
+
+  .grid-two{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:26px;
+  }
+  @media (max-width: 620px){ .grid-two{ grid-template-columns:1fr; } }
+
+  .cost-card, .bio-card{
+    border:1px solid var(--line);
+    padding:14px 16px;
+    background:#fff8;
+  }
+  .cost-card .label, .bio-card .label{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    text-transform:none;
+  }
+  .cost-card .num{
+    font-family:'JetBrains Mono', monospace;
+    font-size:26px;
+    font-weight:700;
+    color:var(--bamboo-deep);
+    margin-top:2px;
+  }
+  .bio-card .num{
+    font-family:'JetBrains Mono', monospace;
+    font-size:26px;
+    font-weight:700;
+    margin-top:2px;
+  }
+
+  .warnings{
+    margin-top:26px;
+  }
+  .warn-item{
+    display:flex;
+    gap:10px;
+    padding:10px 0;
+    border-top:1px solid var(--line-soft);
+    font-size:13px;
+  }
+  .warn-item:first-child{ border-top:none; }
+  .warn-item .mark{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    color:var(--brick);
+    flex-shrink:0;
+  }
+  .warn-empty{
+    font-size:13px;
+    color:var(--ink-soft);
+    padding:8px 0;
+  }
+
+  .verdict{
+    margin-top:22px;
+    padding:16px 18px;
+    background:var(--bamboo-deep);
+    color:#F3EEDD;
+  }
+  .verdict .tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--bamboo-pale);
+  }
+  .verdict .text{
+    font-size:15px;
+    margin-top:6px;
+    font-weight:500;
+  }
+
+  .footnote{
+    margin-top:34px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-size:11.5px;
+    color:var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="title-block">
+    <div>
+      <h1>竹基可降解马甲袋 · 配方模拟台</h1>
+      <div class="subtitle">调整树脂基材、竹粉与助剂配比，直观查看对薄膜韧性、抗刺穿、降解速度与成本的影响。</div>
+    </div>
+    <div class="doc-meta">
+      模拟模型 v1<br>
+      基材体系：PBAT / PLA / 淀粉 / 竹粉<br>
+      产品形态：吹膜马甲袋
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- LEFT: inputs -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2>配方投料单</h2>
+        <span class="hint">质量分数 · 自动归一至100</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="field">
+          <div class="field-label"><span class="name">PBAT（基材树脂）</span><span class="val" id="v-pbat">55%</span></div>
+          <input type="range" id="s-pbat" min="0" max="100" value="55" step="1">
+          <div class="desc">决定柔韧性与吹膜可加工性，是薄膜成型的骨架。参考单价 ≈ 18,000 元/吨</div>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="name">PLA（增强树脂）</span><span class="val" id="v-pla">10%</span></div>
+          <input type="range" id="s-pla" min="0" max="100" value="10" step="1">
+          <div class="desc">提升拉伸强度与刚性，占比过高会显著发脆。参考单价 ≈ 22,000 元/吨</div>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="name">热塑性淀粉</span><span class="val" id="v-starch">15%</span></div>
+          <input type="range" id="s-starch" min="0" max="100" value="15" step="1">
+          <div class="desc">降低成本、可选项；占比过高会削弱耐水性。参考单价 ≈ 7,500 元/吨</div>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="name">超微竹粉</span><span class="val" id="v-bamboo">15%</span></div>
+          <input type="range" id="s-bamboo" min="0" max="100" value="15" step="1">
+          <div class="desc">"以竹代塑"核心填料；占比与相容剂需匹配，否则易团聚。参考单价 ≈ 4,000 元/吨</div>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="name">相容剂</span><span class="val" id="v-compat">5%</span></div>
+          <input type="range" id="s-compat" min="0" max="15" value="5" step="0.5">
+          <div class="desc">改善竹粉与树脂界面结合，竹粉占比越高越需要它。参考单价 ≈ 28,000 元/吨</div>
+        </div>
+
+        <div class="total-row">
+          <span>合计</span>
+          <b id="v-total">100%</b>
+        </div>
+
+        <hr class="divider">
+
+        <div class="field">
+          <div class="field-label"><span class="name">竹粉目数（越大越细）</span><span class="val" id="v-mesh">180目</span></div>
+          <input type="range" id="s-mesh" min="60" max="320" value="180" step="10">
+          <div class="desc">目数换算粒径约 <span id="v-mesh-um">83μm</span>，需明显小于薄膜厚度。</div>
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span class="name">薄膜厚度</span><span class="val" id="v-thick">28μm</span></div>
+          <input type="range" id="s-thick" min="15" max="45" value="28" step="1">
+          <div class="desc">马甲袋常见厚度区间 20～35μm。</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: outputs -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2>性能读数</h2>
+        <span class="hint">趋势模拟 · 非实测数据</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="metric">
+          <div class="metric-top"><span class="metric-name">拉伸强度</span><span class="metric-num" id="n-tensile">—</span></div>
+          <div class="bar-track"><div class="bar-fill" id="b-tensile"></div></div>
+          <div class="metric-note" id="note-tensile"></div>
+        </div>
+
+        <div class="metric">
+          <div class="metric-top"><span class="metric-name">韧性 / 断裂伸长率</span><span class="metric-num" id="n-tough">—</span></div>
+          <div class="bar-track"><div class="bar-fill" id="b-tough"></div></div>
+          <div class="metric-note" id="note-tough"></div>
+        </div>
+
+        <div class="metric">
+          <div class="metric-top"><span class="metric-name">抗刺穿 / 承重可靠性</span><span class="metric-num" id="n-punc">—</span></div>
+          <div class="bar-track"><div class="bar-fill" id="b-punc"></div></div>
+          <div class="metric-note" id="note-punc"></div>
+        </div>
+
+        <div class="metric">
+          <div class="metric-top"><span class="metric-name">堆肥降解速度</span><span class="metric-num" id="n-degrade">—</span></div>
+          <div class="bar-track"><div class="bar-fill" id="b-degrade"></div></div>
+          <div class="metric-note" id="note-degrade"></div>
+        </div>
+
+        <div class="metric">
+          <div class="metric-top"><span class="metric-name">耐水 / 耐潮性</span><span class="metric-num" id="n-water">—</span></div>
+          <div class="bar-track"><div class="bar-fill" id="b-water"></div></div>
+          <div class="metric-note" id="note-water"></div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="grid-two">
+          <div class="bio-card">
+            <div class="label">生物基占比</div>
+            <div class="num" id="n-bio">—</div>
+          </div>
+          <div class="cost-card">
+            <div class="label">原料成本估算（元/吨）</div>
+            <div class="num" id="n-cost">—</div>
+          </div>
+        </div>
+
+        <div class="warnings">
+          <div id="warn-list"></div>
+        </div>
+
+        <div class="verdict">
+          <div class="tag">场景建议</div>
+          <div class="text" id="verdict-text">—</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footnote">
+    本模型基于公开专利趋势与材料学常识（PBAT/PLA/淀粉/纤维填料对薄膜力学性能与降解性的一般影响规律）归纳的<b>简化示意模型</b>，用于配方方向的直觉判断，各项指数、成本区间均为估算参考，不等同于实验室实测数据。落地生产前仍需通过实际共混挤出、吹膜试样与GB/T 38082等标准检测验证。各原料单价为市场大致参考区间（人民币/吨），实际价格随供应商、产地、批量及行情波动，采购前请以供应商实时报价为准。
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const ids = ['pbat','pla','starch','bamboo','compat'];
+  const sliders = {};
+  ids.forEach(id => sliders[id] = document.getElementById('s-'+id));
+  const meshSlider = document.getElementById('s-mesh');
+  const thickSlider = document.getElementById('s-thick');
+
+  let normalizing = false;
+
+  function readValues(){
+    const raw = {};
+    ids.forEach(id => raw[id] = parseFloat(sliders[id].value));
+    return raw;
+  }
+
+  // Auto-normalize the five composition sliders to sum to 100
+  function normalize(changedId){
+    if(normalizing) return;
+    normalizing = true;
+    const raw = readValues();
+    const total = ids.reduce((s,id)=>s+raw[id],0);
+    if(total > 0 && Math.abs(total-100) > 0.01){
+      const others = ids.filter(id => id !== changedId);
+      const othersTotal = others.reduce((s,id)=>s+raw[id],0);
+      const target = 100 - raw[changedId];
+      if(othersTotal > 0){
+        others.forEach(id => {
+          const share = raw[id] / othersTotal;
+          let newVal = Math.max(0, target * share);
+          sliders[id].value = newVal;
+        });
+      } else if(others.length){
+        const even = target / others.length;
+        others.forEach(id => sliders[id].value = Math.max(0, even));
+      }
+    }
+    normalizing = false;
+  }
+
+  function clamp(v,min,max){ return Math.min(max, Math.max(min, v)); }
+
+  function compute(){
+    const raw = readValues();
+    const total = ids.reduce((s,id)=>s+raw[id],0) || 1;
+    const f = {}; // fractions 0..1
+    ids.forEach(id => f[id] = raw[id]/total);
+
+    const mesh = parseFloat(meshSlider.value);
+    const thickness = parseFloat(thickSlider.value);
+    const particleUm = 15000/mesh; // approximate mesh-to-micron conversion
+
+    const effC = Math.min(f.compat/0.03, 1); // compatibilizer effectiveness, saturates near 3%
+
+    // Tensile strength index
+    let tensile = 35 + f.pla*90 - f.starch*15 + (f.bamboo*60*effC) - (f.bamboo*f.bamboo*80);
+    tensile = clamp(tensile,0,100);
+
+    // Toughness / elongation index
+    let tough = 85 - f.pla*120 - f.starch*40 - f.bamboo*70*(1-effC*0.5);
+    tough = clamp(tough,0,100);
+
+    // Puncture resistance index — penalized when particle size is large relative to film thickness
+    const ratio = particleUm/thickness;
+    const sizePenalty = ratio > 0.3 ? (ratio-0.3)*150 : 0;
+    let punc = clamp(tensile*0.4 + tough*0.6 - sizePenalty, 0, 100);
+
+    // Degradation speed index
+    let degrade = f.pbat*70 + f.pla*55 + f.starch*90 + f.bamboo*85 + f.compat*30;
+    degrade = clamp(degrade,0,100);
+
+    // Water / moisture resistance index
+    let water = 100 - f.starch*180 - f.bamboo*40 + f.pbat*10;
+    water = clamp(water,0,100);
+
+    // Bio-based content
+    const bioPct = clamp((f.pla+f.starch+f.bamboo)*100, 0, 100);
+
+    // Cost per ton (RMB, indicative reference prices)
+    const cost = f.pbat*18000 + f.pla*22000 + f.starch*7500 + f.bamboo*4000 + f.compat*28000;
+
+    return {f, mesh, thickness, particleUm, tensile, tough, punc, degrade, water, bioPct, cost, sizePenalty};
+  }
+
+  function setBar(barEl, numEl, value, unit, level){
+    barEl.style.width = value.toFixed(0)+'%';
+    barEl.classList.remove('warn','danger');
+    if(level==='warn') barEl.classList.add('warn');
+    if(level==='danger') barEl.classList.add('danger');
+    numEl.textContent = value.toFixed(0) + unit;
+  }
+
+  function levelFor(v){ return v < 35 ? 'danger' : (v < 55 ? 'warn' : ''); }
+
+  function render(){
+    const r = compute();
+
+    document.getElementById('v-pbat').textContent = sliders.pbat.value*1 + '%';
+    document.getElementById('v-pla').textContent = sliders.pla.value*1 + '%';
+    document.getElementById('v-starch').textContent = sliders.starch.value*1 + '%';
+    document.getElementById('v-bamboo').textContent = sliders.bamboo.value*1 + '%';
+    document.getElementById('v-compat').textContent = parseFloat(sliders.compat.value).toFixed(1) + '%';
+    const total = ids.reduce((s,id)=>s+parseFloat(sliders[id].value),0);
+    document.getElementById('v-total').textContent = total.toFixed(0)+'%';
+
+    document.getElementById('v-mesh').textContent = r.mesh + '目';
+    document.getElementById('v-mesh-um').textContent = r.particleUm.toFixed(0) + 'μm';
+    document.getElementById('v-thick').textContent = r.thickness + 'μm';
+
+    setBar(document.getElementById('b-tensile'), document.getElementById('n-tensile'), r.tensile, '', levelFor(r.tensile));
+    setBar(document.getElementById('b-tough'), document.getElementById('n-tough'), r.tough, '', levelFor(r.tough));
+    setBar(document.getElementById('b-punc'), document.getElementById('n-punc'), r.punc, '', levelFor(r.punc));
+    setBar(document.getElementById('b-degrade'), document.getElementById('n-degrade'), r.degrade, '', '');
+    setBar(document.getElementById('b-water'), document.getElementById('n-water'), r.water, '', levelFor(r.water));
+
+    document.getElementById('note-tensile').textContent = r.tensile < 35 ? '偏软，承重能力不足' : (r.tensile > 80 ? '偏刚，注意搭配韧性指标' : '常规商超袋区间');
+    document.getElementById('note-tough').textContent = r.tough < 35 ? '偏脆，低温或折叠处易开裂' : '柔韧性尚可';
+    document.getElementById('note-punc').textContent = r.sizePenalty > 5 ? `竹粉粒径 ${r.particleUm.toFixed(0)}μm 相对膜厚偏大，已扣减${r.sizePenalty.toFixed(0)}分` : '粒径与膜厚匹配良好';
+    document.getElementById('note-degrade').textContent = r.degrade > 70 ? '堆肥条件下降解较快' : (r.degrade > 45 ? '中等降解速度，需工业堆肥条件' : '降解偏慢，接近传统树脂表现');
+    document.getElementById('note-water').textContent = r.water < 40 ? '遇水易发粘变形，不建议装汤汁类' : '耐潮表现正常';
+
+    document.getElementById('n-bio').textContent = r.bioPct.toFixed(0) + '%';
+    document.getElementById('n-cost').textContent = '≈ ' + Math.round(r.cost).toLocaleString('zh-CN');
+
+    // Warnings
+    const warnings = [];
+    if(r.f.bamboo > 0.20 && r.f.compat < 0.03){
+      warnings.push('竹粉占比超过20%但相容剂不足3%，界面结合差，薄膜易出现鱼眼、破洞。');
+    }
+    if(r.sizePenalty > 5){
+      warnings.push('竹粉粒径相对薄膜厚度偏粗，是穿刺失效的主要风险点，建议提高目数或增加膜厚。');
+    }
+    if(r.f.pla > 0.35 && r.f.pbat < 0.40){
+      warnings.push('PLA占比偏高、PBAT占比偏低，材料整体偏脆，不适合需要反复拉伸的马甲袋场景。');
+    }
+    if(r.f.starch > 0.25){
+      warnings.push('淀粉占比超过25%，耐水耐潮性明显下降，装湿货或汤汁类物品时风险较高。');
+    }
+    if(r.f.bamboo > 0.10 && r.f.compat < 0.01){
+      warnings.push('竹粉占比不低但几乎未加相容剂，界面结合缺失，强度会显著低于模拟数值。');
+    }
+    if(r.f.pbat < 0.30){
+      warnings.push('PBAT基材占比过低，吹膜成型稳定性可能不足，实际生产中易出现拉伸不均、破膜。');
+    }
+
+    const warnList = document.getElementById('warn-list');
+    warnList.innerHTML = '';
+    if(warnings.length === 0){
+      const div = document.createElement('div');
+      div.className = 'warn-empty';
+      div.textContent = '当前配方组合未触发明显风险提示。';
+      warnList.appendChild(div);
+    } else {
+      warnings.forEach(w => {
+        const div = document.createElement('div');
+        div.className = 'warn-item';
+        div.innerHTML = '<span class="mark">▲</span><span>'+w+'</span>';
+        warnList.appendChild(div);
+      });
+    }
+
+    // Verdict
+    let verdict = '';
+    if(r.punc < 35){
+      verdict = '当前配方抗刺穿可靠性不足，不建议直接用于承重马甲袋，建议先解决竹粉粒径或相容剂问题。';
+    } else if(r.tensile > 65 && r.tough < 35){
+      verdict = '偏刚性配方，更适合硬质结构件或托盘类制品，若坚持做薄膜袋需大幅提高PBAT占比改善韧性。';
+    } else if(r.bioPct > 55 && r.punc > 55){
+      verdict = '生物基占比高且力学表现均衡，适合主打"高竹基含量"卖点的中高端定制马甲袋。';
+    } else if(r.cost < 13000 && r.punc > 45){
+      verdict = '成本可控、性能达标，适合走量的商超日用马甲袋路线。';
+    } else {
+      verdict = '各项指标处于中间水平，可作为起始配方，建议结合具体承重需求微调竹粉与相容剂比例。';
+    }
+    document.getElementById('verdict-text').textContent = verdict;
+  }
+
+  ids.forEach(id => {
+    sliders[id].addEventListener('input', () => {
+      normalize(id);
+      render();
+    });
+  });
+  meshSlider.addEventListener('input', render);
+  thickSlider.addEventListener('input', render);
+
+  render();
+})();
+</script>
+
+</body>
+</html>
